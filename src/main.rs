@@ -22,6 +22,19 @@ mod schema {
         content: String,
     }
 
+    impl Platform {
+        // Returns a random platform
+        pub fn choose_platform() -> Self {
+            let mut rng = rand::thread_rng();
+
+            match rng.gen_range(0..2) {
+                0 => Platform::IRC , 
+                1 => Platform::Discord,
+                _ => panic!("RNG failed to get Platform!"),
+            }
+        }
+    }
+
     impl Message {
         // count: number of messages in a post
         pub fn new(count: usize) -> Vec<Self> {
@@ -43,7 +56,7 @@ mod schema {
         pub fn new(message_count: Option<usize>) -> Self {
             Post {
                 messages: Message::new(message_count.unwrap_or(0)),
-                platform: Platform::IRC,
+                platform: Platform::choose_platform(),
             }
         }
     }
