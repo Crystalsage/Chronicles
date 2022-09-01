@@ -1,6 +1,33 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+
+mod server {
+    use std::convert::Infallible;
+    use std::net::SocketAddr;
+    use hyper::{Body, Request, Response, Server};
+    use hyper::service::{make_service_fn, service_fn};
+
+    async fn hello_world(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+        Ok(Response::new("Hello".into()))
+    }
+
+    #[tokio::main]
+    async fn main() {
+        let addr = SocketAddr::from(([127,0,0,1], 8001));
+        let make_svc = make_service_fn(|_conn| async {
+            Ok::<_, Infallible>(service_fn(hello_world));
+        });
+
+        let server = Server::bind(&addr).serve(make_svc);
+
+        // Run this server for... forever!
+        if let Err(e) = server.await {
+            eprintln!("server error: {}", e);
+        }
+    }
+}
+
 mod schema {
     use rand::Rng;
 
@@ -51,7 +78,6 @@ mod schema {
         }
     }
                     
-
     impl Post {
         pub fn new(message_count: Option<usize>) -> Self {
             Post {
