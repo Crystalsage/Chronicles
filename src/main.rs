@@ -1,15 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-// use serde_derive::{Deserialize, Serialize};
-//
-use serde::{Serialize,Deserialize};
-
 mod server;
 
 mod schema {
     use rand::Rng;
-    use serde::{Deserialize, Serialize};
+    use serde::Serialize;
 
     #[derive(Debug)]
     pub enum Platform {
@@ -23,8 +19,7 @@ mod schema {
         messages: Vec<Message>,
     }
 
-    #[derive(Deserialize, Serialize, Debug)]
-    // #[derive( Debug)]
+    #[derive(Serialize, Debug)]
     pub struct Message {
         pub timestamp: usize,
         pub content: String,
@@ -73,7 +68,7 @@ type Message = schema::Message;
 type Platform = schema::Platform;
 type Post = schema::Post;
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() {
     let server = server::run().await;
 }
