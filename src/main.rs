@@ -7,16 +7,17 @@ mod schema {
     use rand::Rng;
     use serde::Serialize;
 
-    #[derive(Debug)]
+    #[derive(Serialize, Debug)]
     pub enum Platform {
         IRC,
         Discord,
     }
 
-    #[derive(Debug)]
+    #[derive(Serialize, Debug)]
     pub struct Post {
-        platform: Platform,
-        messages: Vec<Message>,
+        pub id: usize,
+        pub platform: Platform,
+        pub messages: Vec<Message>,
     }
 
     #[derive(Serialize, Debug)]
@@ -57,6 +58,8 @@ mod schema {
     impl Post {
         pub fn new(message_count: Option<usize>) -> Self {
             Post {
+                // TODO: Change hardcoded values
+                id: 1,
                 messages: Message::new(message_count.unwrap_or(0)),
                 platform: Platform::choose_platform(),
             }
