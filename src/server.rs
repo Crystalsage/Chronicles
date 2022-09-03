@@ -1,6 +1,35 @@
+use std::num;
+
 use actix_web::{get, web::Json, App, HttpServer, error::PathError};
 
 use crate::{Message, Post, Platform};
+
+extern crate redis;
+use redis::Commands;
+use redis::RedisError;
+
+mod errors {
+    struct PostError;
+    struct MessageError;
+}
+
+fn fetch_integer() -> redis::RedisResult<u8> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con: redis::Connection = client.get_connection()?;
+
+    let _: Result<u8, RedisError> = redis::cmd("SELECT").arg("1").query(&mut con);
+    let numero: u8 = con.get("numero")?;
+
+    Ok(numero)
+}
+
+
+#[get("/redis")]
+async fn get_redis_integer() -> Result<String, PathError>{
+    let num = fetch_integer().unwrap();
+
+    Ok(num.to_string())
+}
 
 #[get("/")]
 async fn hello_there() -> Result<String, PathError> {
@@ -28,6 +57,7 @@ pub async fn run() -> std::io::Result<()>{
         App::new()
             .service(hello_there)
             .service(create_post)
+            .service(get_redis_integer)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
