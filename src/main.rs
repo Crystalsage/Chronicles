@@ -1,26 +1,30 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+extern crate reqwest;
+
+use http::{Request, Response};
+
 mod server;
 
 mod schema {
     use rand::Rng;
-    use serde::Serialize;
+    use serde::{Serialize, Deserialize};
 
-    #[derive(Serialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub enum Platform {
         IRC,
         Discord,
     }
 
-    #[derive(Serialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct Post {
         pub id: usize,
         pub platform: Platform,
         pub messages: Vec<Message>,
     }
 
-    #[derive(Serialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct Message {
         pub timestamp: usize,
         pub content: String,
@@ -53,6 +57,15 @@ mod schema {
 
             return messages;
         }
+
+        pub async fn from_url(url: String) -> Self {
+            let mut message_string = String::new();
+
+            Message {
+                timestamp: rand::thread_rng().gen_range(10000..99999),
+                content: message_body,
+            }
+        }
     }
                     
     impl Post {
@@ -73,5 +86,7 @@ type Post = schema::Post;
 
 #[actix_web::main]
 async fn main() {
-    let server = server::run().await;
+    // let server = server::run().await;
+    let message = Message::from_url("https://google.com".to_string());
+    dbg!(message);
 }
