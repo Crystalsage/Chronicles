@@ -2,7 +2,7 @@ use core::fmt;
 use std::io::Error;
 use std::sync::Mutex;
 
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, Responder};
 use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, HttpRequest, error::PathError};
 use redis::Commands;
@@ -10,6 +10,9 @@ use redis::Commands;
 use crate::{Message, Post, Platform};
 
 use serde::Deserialize;
+
+use uuid::Uuid;
+
 
 extern crate redis;
 
@@ -49,7 +52,7 @@ async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, Pat
     let post: Post = Post {
         id: 2,
         platform: Platform::IRC,
-        messages: get_messages(),
+        messages: get_messages().await,
     };
 
     let post_json = serde_json::to_string(&post).unwrap();
@@ -58,6 +61,12 @@ async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, Pat
         .expect("Redis SET failed for POST");
 
     Ok(String::from("0"))
+}
+
+
+#[post("/get_messages_path")]
+async fn get_messages_path() -> impl Responder {
+    get_messages().await
 }
 
 
@@ -78,8 +87,8 @@ async fn hello_there() -> Result<String, PathError> {
     Ok(returnable)
 }
 
-fn get_messages() -> Vec<Message> {
-    return Message::new(5);
+async fn get_messages() -> Vec<Message> {
+    return vec![Message::from_url().await]
 }
 
 

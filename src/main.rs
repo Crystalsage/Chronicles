@@ -3,8 +3,6 @@
 
 extern crate reqwest;
 
-use http::{Request, Response};
-
 mod server;
 
 mod schema {
@@ -58,13 +56,13 @@ mod schema {
             return messages;
         }
 
-        pub async fn from_url(url: String) -> Self {
-            let mut message_string = String::new();
+        pub async fn from_url() -> Self {
+            let url: String = "https://gist.githubusercontent.com/Crystalsage/73fccaac6ec9a55377fcd43bd37aac12/raw/4b1022b8f1cfdb07ecd67de8f7acc1b5f219f035/messages.json".to_string();
 
-            Message {
-                timestamp: rand::thread_rng().gen_range(10000..99999),
-                content: message_body,
-            }
+            reqwest::get(url)
+                .await.unwrap()
+                .json::<Message>()
+                .await.unwrap()
         }
     }
                     
@@ -86,7 +84,5 @@ type Post = schema::Post;
 
 #[actix_web::main]
 async fn main() {
-    // let server = server::run().await;
-    let message = Message::from_url("https://google.com".to_string());
-    dbg!(message);
+    let server = server::run().await;
 }
