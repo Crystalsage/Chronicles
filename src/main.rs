@@ -26,6 +26,7 @@ mod schema {
     pub struct Message {
         pub timestamp: usize,
         pub content: String,
+        pub author: String,
     }
 
     impl Platform {
@@ -50,6 +51,7 @@ mod schema {
                 messages.push(Message {
                     timestamp: rand::thread_rng().gen_range(10000..99999),
                     content: String::from(format!("I am message number {}!", message+1)),
+                    author: "Bourbon".into(),
                 });
             }
 

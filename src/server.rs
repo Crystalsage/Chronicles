@@ -2,6 +2,7 @@ use core::fmt;
 use std::io::Error;
 use std::sync::Mutex;
 
+use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, Responder};
 use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, HttpRequest, error::PathError};
@@ -64,10 +65,10 @@ async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, Pat
 }
 
 
-#[post("/get_messages_path")]
-async fn get_messages_path() -> impl Responder {
-    get_messages().await
-}
+//#[post("/get_messages_path")]
+//async fn get_messages_path() -> impl Responder {
+//    get_messages().await
+//}
 
 
 // Returns a parsable JSON string 
@@ -83,6 +84,7 @@ async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<
 
 #[get("/")]
 async fn hello_there() -> Result<String, PathError> {
+    println!("We got a hit at hello_there!");
     let returnable = String::from("Hello there this is the actix server!");
     Ok(returnable)
 }
@@ -95,10 +97,18 @@ async fn get_messages() -> Vec<Message> {
 //fn get_messages_new(message_urls: Vec<String>) -> Vec<Message> {
 //    return Message::from_url(5);
 //}
+//
+#[post("/message_from_discord")]
+async fn get_message_from_discord_bot(message: web::Json<Message>) -> impl Responder {
+    println!("Someone hit this endpoint!");
+    dbg!(&message);
+
+    return message;
+}
 
 pub async fn run() -> std::io::Result<()>{
     let client = redis::Client::open("redis://127.0.0.1/").unwrap();
-    let con = client.get_connection().unwrap();
+    let con = client.get_connection().expect("Failed to connect to Redis!");
 
     let con = Data::new(Mutex::new(con));
 
@@ -106,6 +116,7 @@ pub async fn run() -> std::io::Result<()>{
         App::new()
             .app_data(Data::clone(&con))
             .service(hello_there)
+            .service(get_message_from_discord_bot)
             .service(create_post)
             .service(get_post_with_id)
     })
