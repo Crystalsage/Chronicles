@@ -1,22 +1,14 @@
 use core::fmt;
-use std::io::Error;
 use std::sync::Mutex;
 
-use actix_web::error::JsonPayloadError;
 use actix_web::{HttpResponse, Responder};
 use actix_web::web::Data;
-use actix_web::{get, web,  post, App, HttpServer, HttpRequest, error::PathError};
+use actix_web::{get, web,  post, App, HttpServer, error::PathError};
 use redis::Commands;
 
 use crate::{Message, Post, Platform};
 
-use serde::Deserialize;
-
-use uuid::Uuid;
-
-
 extern crate redis;
-
 
 // Redis notes:
 // Table 0 is for posts
@@ -48,6 +40,7 @@ fn string_to_post(post_string: &String) -> Option<Post> {
 }
 
 
+//TODO: HIT THIS ENDPOINT RIGHT HERE
 #[post("/create_post")]
 async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, PathError> {
     let post: Post = Post {
@@ -65,12 +58,6 @@ async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, Pat
 }
 
 
-//#[post("/get_messages_path")]
-//async fn get_messages_path() -> impl Responder {
-//    get_messages().await
-//}
-
-
 // Returns a parsable JSON string 
 #[get("/get_post_with_id/{post_id}")]
 async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<String>) -> HttpResponse {
@@ -82,28 +69,25 @@ async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<
     HttpResponse::Ok().json(post)
 }
 
-#[get("/")]
-async fn hello_there() -> Result<String, PathError> {
-    println!("We got a hit at hello_there!");
-    let returnable = String::from("Hello there this is the actix server!");
-    Ok(returnable)
-}
 
 async fn get_messages() -> Vec<Message> {
     return vec![Message::from_url().await]
 }
 
 
-//fn get_messages_new(message_urls: Vec<String>) -> Vec<Message> {
-//    return Message::from_url(5);
-//}
-//
 #[post("/message_from_discord")]
 async fn get_message_from_discord_bot(message: web::Json<Message>) -> impl Responder {
-    println!("Someone hit this endpoint!");
-    dbg!(&message);
+    //TODO: Is this deserialized automatically?
+
 
     return message;
+}
+
+#[get("/")]
+async fn root_hello() -> Result<String, PathError> {
+    println!("We got a hit at hello_there!");
+    let returnable = String::from("Hello there this is the actix server!");
+    Ok(returnable)
 }
 
 pub async fn run() -> std::io::Result<()>{
@@ -115,7 +99,7 @@ pub async fn run() -> std::io::Result<()>{
     HttpServer::new(move || {
         App::new()
             .app_data(Data::clone(&con))
-            .service(hello_there)
+            .service(root_hello)
             .service(get_message_from_discord_bot)
             .service(create_post)
             .service(get_post_with_id)
