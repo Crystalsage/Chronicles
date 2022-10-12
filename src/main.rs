@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::vec;
+
+use serde_json::json;
+
 extern crate reqwest;
 
 mod server;
@@ -29,6 +33,11 @@ mod schema {
         pub author: String,
     }
 
+    #[derive(Deserialize, Debug)]
+    pub struct DiscordMessages {
+        pub messages: Vec<String>
+    }
+
     impl Platform {
         // Returns a random platform
         pub fn choose_platform() -> Self {
@@ -44,15 +53,14 @@ mod schema {
 
     impl Message {
         // count: number of messages in a post
-        pub fn new(count: usize) -> Vec<Self> {
+        pub fn new(discord_messages: Vec<&str>) -> Vec<Self> {
             let mut messages: Vec<Message> = Vec::new();
 
-            for message in 0..count {
+            for msg in discord_messages {
                 messages.push(Message {
-                    timestamp: rand::thread_rng().gen_range(10000..99999),
-                    content: String::from(format!("I am message number {}!", message+1)),
-                    author: "Bourbon".into(),
-                });
+                    timestamp: 129302193,
+                    content: msg.to_string(), 
+                    author: "Bourbon".into() })
             }
 
             return messages;
@@ -73,7 +81,7 @@ mod schema {
             Post {
                 // TODO: Change hardcoded values
                 id: 1,
-                messages: Message::new(message_count.unwrap_or(0)),
+                messages: Message::new(vec!["Hello", "There"]),
                 platform: Platform::choose_platform(),
             }
         }
@@ -83,6 +91,7 @@ mod schema {
 type Message = schema::Message;
 type Platform = schema::Platform;
 type Post = schema::Post;
+type DiscordMessages = schema::DiscordMessages;
 
 #[actix_web::main]
 async fn main() {

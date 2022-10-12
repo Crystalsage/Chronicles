@@ -1,12 +1,13 @@
 use core::fmt;
+use std::str::from_utf8;
 use std::sync::Mutex;
 
-use actix_web::{HttpResponse, Responder};
+use actix_web::HttpResponse;
 use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, error::PathError};
 use redis::Commands;
 
-use crate::{Message, Post, Platform};
+use crate::{Message, Post, Platform, DiscordMessages};
 
 extern crate redis;
 
@@ -76,12 +77,15 @@ async fn get_messages() -> Vec<Message> {
 
 
 #[post("/message_from_discord")]
-async fn get_message_from_discord_bot(message: web::Json<Message>) -> impl Responder {
-    //TODO: Is this deserialized automatically?
+async fn get_message_from_discord_bot(msgs: web::Bytes) -> HttpResponse {
+    println!("We got some messages from the bot!");
 
+    let messages: &str = from_utf8(&msgs).unwrap();
+    let d_msg: DiscordMessages = serde_json::from_str(messages).unwrap();
 
-    return message;
+    HttpResponse::Ok().finish()
 }
+
 
 #[get("/")]
 async fn root_hello() -> Result<String, PathError> {
