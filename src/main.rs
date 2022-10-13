@@ -1,10 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::vec;
-
-use serde_json::json;
-
 extern crate reqwest;
 
 mod server;
@@ -65,24 +61,15 @@ mod schema {
 
             return messages;
         }
-
-        pub async fn from_url() -> Self {
-            let url: String = "https://gist.githubusercontent.com/Crystalsage/73fccaac6ec9a55377fcd43bd37aac12/raw/4b1022b8f1cfdb07ecd67de8f7acc1b5f219f035/messages.json".to_string();
-
-            reqwest::get(url)
-                .await.unwrap()
-                .json::<Message>()
-                .await.unwrap()
-        }
     }
                     
     impl Post {
-        pub fn new(message_count: Option<usize>) -> Self {
+        pub fn new(messages: Vec<Message>) -> Self {
             Post {
                 // TODO: Change hardcoded values
                 id: 1,
-                messages: Message::new(vec!["Hello", "There"]),
-                platform: Platform::choose_platform(),
+                messages: messages,
+                platform: Platform::Discord,
             }
         }
     }

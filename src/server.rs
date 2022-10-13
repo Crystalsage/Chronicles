@@ -7,7 +7,9 @@ use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, error::PathError};
 use redis::Commands;
 
-use crate::{Message, Post, Platform, DiscordMessages};
+use crate::{Message, Post, DiscordMessages};
+
+use self::signals::PostError;
 
 extern crate redis;
 
@@ -21,11 +23,12 @@ mod signals {
         Failure
     }
 
+
+    #[derive(Debug)]
     pub struct PostError;
     struct MessageError;
 }
 
-type PostError = signals::PostError;
 type JSONString = std::string::String;
 
 impl fmt::Display for PostError {
@@ -34,28 +37,11 @@ impl fmt::Display for PostError {
     }
 }
 
+
 // Deserialize the String obtained from Redis 
 // into a Post struct
 fn string_to_post(post_string: &String) -> Option<Post> {
     serde_json::from_str(&post_string).ok()?
-}
-
-
-//TODO: HIT THIS ENDPOINT RIGHT HERE
-#[post("/create_post")]
-async fn create_post(data: Data<Mutex<redis::Connection>>) -> Result<String, PathError> {
-    let post: Post = Post {
-        id: 2,
-        platform: Platform::IRC,
-        messages: get_messages().await,
-    };
-
-    let post_json = serde_json::to_string(&post).unwrap();
-    let mut con = data.lock().unwrap();
-    con.set::<String, String, String>(post.id.to_string(), post_json)
-        .expect("Redis SET failed for POST");
-
-    Ok(String::from("0"))
 }
 
 
@@ -71,20 +57,45 @@ async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<
 }
 
 
-async fn get_messages() -> Vec<Message> {
-    return vec![Message::from_url().await]
+// ==========================================================
+// Post construction endpoints and helpers below this comment
+// ==========================================================
+
+#[post("/create_post")]
+async fn create_post(data: Data<Mutex<redis::Connection>>, msgs: web::Bytes) -> Result<String, PathError> {
+    let msgs_from_discord: Vec<Message> = convert_discord_to_crate_type(msgs).await.unwrap();
+
+
+    let post: Post = Post::new(msgs_from_discord);
+    let post_json = serde_json::to_string(&post).unwrap();
+
+    let mut con = data.lock().unwrap();
+
+    println!("Committing post to Redis!");
+
+    con.set::<String, String, String>(post.id.to_string(), post_json)
+        .expect("Redis SET failed for POST");
+
+    Ok(String::from("0"))
 }
 
+async fn convert_discord_to_crate_type(msgs: web::Bytes) -> Result<Vec<Message>, PostError>{
+    let mut messages: Vec<Message> = Vec::new();
 
-#[post("/message_from_discord")]
-async fn get_message_from_discord_bot(msgs: web::Bytes) -> HttpResponse {
-    println!("We got some messages from the bot!");
+    let discord_type_messages: &str  = from_utf8(&msgs).unwrap();
+    let discord_type_messages: DiscordMessages = serde_json::from_str(discord_type_messages).unwrap();
 
-    let messages: &str = from_utf8(&msgs).unwrap();
-    let d_msg: DiscordMessages = serde_json::from_str(messages).unwrap();
+    for discord_message in discord_type_messages.messages {
+        messages.push(Message { 
+            timestamp: 13909203, 
+            content: discord_message.to_string(), 
+            author: "Bourbon".to_string(), 
+        })
+    }
 
-    HttpResponse::Ok().finish()
+    Ok(messages)
 }
+
 
 
 #[get("/")]
@@ -104,7 +115,6 @@ pub async fn run() -> std::io::Result<()>{
         App::new()
             .app_data(Data::clone(&con))
             .service(root_hello)
-            .service(get_message_from_discord_bot)
             .service(create_post)
             .service(get_post_with_id)
     })
