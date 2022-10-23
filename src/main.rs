@@ -48,7 +48,6 @@ mod schema {
     }
 
     impl Message {
-        // count: number of messages in a post
         pub fn new(discord_messages: Vec<&str>) -> Vec<Self> {
             let mut messages: Vec<Message> = Vec::new();
 
@@ -57,6 +56,20 @@ mod schema {
                     timestamp: 129302193,
                     content: msg.to_string(), 
                     author: "Bourbon".into() })
+            }
+
+            return messages;
+        }
+
+        pub fn random(count: u8) -> Vec<Self> {
+            let mut messages: Vec<Message> = Vec::new();
+
+            for i in 0..count {
+                messages.push(
+                    Message { 
+                        timestamp: 182981923, 
+                        content: format!("Hello Bourbon with id {}", i),
+                        author: "Bourbon".to_string() });
             }
 
             return messages;

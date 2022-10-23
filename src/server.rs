@@ -7,9 +7,16 @@ use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, error::PathError};
 use redis::Commands;
 
+use actix_web::Responder;
+
+use actix_cors::Cors;
+use actix_web::http::header;
+
 use crate::{Message, Post, DiscordMessages};
 
 use self::signals::PostError;
+
+use self::signals::PostId;
 
 extern crate redis;
 
@@ -23,6 +30,10 @@ mod signals {
         Failure
     }
 
+    #[derive(Debug, serde::Deserialize)]
+    pub struct PostId {
+        id: u8,
+    }
 
     #[derive(Debug)]
     pub struct PostError;
@@ -55,13 +66,14 @@ fn string_to_post(post_string: &String) -> Option<Post> {
 //
 //    HttpResponse::Ok().json(post)
 //}
-//
-async fn get_post_by_id(post_id: web::Query<u8>) -> impl Responder {
-    Post {
+#[get("/get_post_by_id")]
+async fn get_post_by_id(post_id: web::Query<PostId>) -> String {
+    println!("Got an id!");
+    serde_json::to_string(&Post{
         id: 1,
-        platform: "Discord".to_string(),
-        messages: Message::random(),
-    }
+        platform: crate::schema::Platform::Discord,
+        messages: Message::random(3_u8),
+    }).unwrap()
 }
 
 
@@ -117,14 +129,25 @@ pub async fn run() -> std::io::Result<()>{
     let client = redis::Client::open("redis://127.0.0.1/").unwrap();
     let con = client.get_connection().expect("Failed to connect to Redis!");
 
+    println!("Starting server!");
+
     let con = Data::new(Mutex::new(con));
+
 
     HttpServer::new(move || {
         App::new()
             .app_data(Data::clone(&con))
+            .wrap(
+                Cors::default()
+                .supports_credentials())
+                //.allowed_origin("http://0.0.0.0:9001")
+                //.allowed_methods(vec!["GET", "POST"])
+                //.allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT]) 
+                //.allowed_header(header::CONTENT_TYPE)
+                //.max_age(3600))
             .service(root_hello)
             .service(create_post)
-            .service(get_post_with_id)
+            .service(get_post_by_id)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
