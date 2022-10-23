@@ -45,15 +45,23 @@ fn string_to_post(post_string: &String) -> Option<Post> {
 }
 
 
-// Returns a parsable JSON string 
-#[get("/get_post_with_id/{post_id}")]
-async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<String>) -> HttpResponse {
-    let mut con = data.lock().unwrap();
-    let post_id: String = path.into_inner();
-
-    let post: JSONString = con.get(post_id).unwrap();
-
-    HttpResponse::Ok().json(post)
+//// Returns a parsable JSON string 
+//#[get("/get_post_by_id/{post_id}")]
+//async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<String>) -> HttpResponse {
+//    let mut con = data.lock().unwrap();
+//    let post_id: String = path.into_inner();
+//
+//    let post: JSONString = con.get(post_id).unwrap();
+//
+//    HttpResponse::Ok().json(post)
+//}
+//
+async fn get_post_by_id(post_id: web::Query<u8>) -> impl Responder {
+    Post {
+        id: 1,
+        platform: "Discord".to_string(),
+        messages: Message::random(),
+    }
 }
 
 
