@@ -2,80 +2,31 @@ use core::fmt;
 use std::str::from_utf8;
 use std::sync::Mutex;
 
-use actix_web::HttpResponse;
 use actix_web::web::Data;
 use actix_web::{get, web,  post, App, HttpServer, error::PathError};
 use redis::Commands;
 
-use actix_web::Responder;
-
 use actix_cors::Cors;
-use actix_web::http::header;
 
 use crate::{Message, Post, DiscordMessages};
 
-use self::signals::PostError;
 
-use self::signals::PostId;
+use actix_web::Responder;
 
 extern crate redis;
 
 // Redis notes:
 // Table 0 is for posts
 // table 1 is for messages
-//
-mod signals {
-    enum PostSignal {
-        Success,
-        Failure
-    }
-
-    #[derive(Debug, serde::Deserialize)]
-    pub struct PostId {
-        id: u8,
-    }
-
-    #[derive(Debug)]
-    pub struct PostError;
-    struct MessageError;
+#[derive(Debug, serde::Deserialize)]
+pub struct PostId {
+    id: u8,
 }
 
-type JSONString = std::string::String;
+#[derive(Debug)]
+pub struct PostError;
 
-impl fmt::Display for PostError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Could not create a post!")
-    }
-}
-
-
-// Deserialize the String obtained from Redis 
-// into a Post struct
-fn string_to_post(post_string: &String) -> Option<Post> {
-    serde_json::from_str(&post_string).ok()?
-}
-
-
-//// Returns a parsable JSON string 
-//#[get("/get_post_by_id/{post_id}")]
-//async fn get_post_with_id(data: Data<Mutex<redis::Connection>>, path: web::Path<String>) -> HttpResponse {
-//    let mut con = data.lock().unwrap();
-//    let post_id: String = path.into_inner();
-//
-//    let post: JSONString = con.get(post_id).unwrap();
-//
-//    HttpResponse::Ok().json(post)
-//}
-#[get("/get_post_by_id")]
-async fn get_post_by_id(post_id: web::Query<PostId>) -> String {
-    println!("Got an id!");
-    serde_json::to_string(&Post{
-        id: 1,
-        platform: crate::schema::Platform::Discord,
-        messages: Message::random(3_u8),
-    }).unwrap()
-}
-
+type JsonString = std::string::String;
 
 // ==========================================================
 // Post construction endpoints and helpers below this comment
@@ -84,7 +35,6 @@ async fn get_post_by_id(post_id: web::Query<PostId>) -> String {
 #[post("/create_post")]
 async fn create_post(data: Data<Mutex<redis::Connection>>, msgs: web::Bytes) -> Result<String, PathError> {
     let msgs_from_discord: Vec<Message> = convert_discord_to_crate_type(msgs).await.unwrap();
-
 
     let post: Post = Post::new(msgs_from_discord);
     let post_json = serde_json::to_string(&post).unwrap();
@@ -96,8 +46,21 @@ async fn create_post(data: Data<Mutex<redis::Connection>>, msgs: web::Bytes) -> 
     con.set::<String, String, String>(post.id.to_string(), post_json)
         .expect("Redis SET failed for POST");
 
-    Ok(String::from("0"))
+    return Ok("Commited post".to_string());
 }
+
+#[get("/get_post_by_id")]
+async fn get_post_by_id(post_id: web::Query<PostId>, data: Data<Mutex<redis::Connection>>) -> JsonString {
+    println!("Fetching post with the id: {}", post_id.id);
+
+    let mut con = data.lock().unwrap();
+
+    let post_json: String = con.get(post_id.id)
+        .unwrap();
+
+    return post_json;
+}
+
 
 async fn convert_discord_to_crate_type(msgs: web::Bytes) -> Result<Vec<Message>, PostError>{
     let mut messages: Vec<Message> = Vec::new();
@@ -133,23 +96,21 @@ pub async fn run() -> std::io::Result<()>{
 
     let con = Data::new(Mutex::new(con));
 
-
     HttpServer::new(move || {
         App::new()
             .app_data(Data::clone(&con))
             .wrap(
                 Cors::default()
-                .supports_credentials())
-                //.allowed_origin("http://0.0.0.0:9001")
+                .allow_any_origin()
+                .send_wildcard())
+                //.allowed_origin("0.0.0.0:8080")
                 //.allowed_methods(vec!["GET", "POST"])
-                //.allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT]) 
-                //.allowed_header(header::CONTENT_TYPE)
                 //.max_age(3600))
             .service(root_hello)
             .service(create_post)
             .service(get_post_by_id)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 9001))?
     .run()
     .await
 }

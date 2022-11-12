@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 extern crate reqwest;
 
 mod server;
@@ -19,6 +16,8 @@ mod schema {
     pub struct Post {
         pub id: usize,
         pub platform: Platform,
+        pub title: String,
+        pub date: String,
         pub messages: Vec<Message>,
     }
 
@@ -32,19 +31,6 @@ mod schema {
     #[derive(Deserialize, Debug)]
     pub struct DiscordMessages {
         pub messages: Vec<String>
-    }
-
-    impl Platform {
-        // Returns a random platform
-        pub fn choose_platform() -> Self {
-            let mut rng = rand::thread_rng();
-
-            match rng.gen_range(0..2) {
-                0 => Platform::IRC , 
-                1 => Platform::Discord,
-                _ => panic!("RNG failed to get Platform!"),
-            }
-        }
     }
 
     impl Message {
@@ -82,6 +68,8 @@ mod schema {
                 // TODO: Change hardcoded values
                 id: 1,
                 messages: messages,
+                date: "28-10-2001".to_string(),
+                title: "Latest messages from Discord".to_string(),
                 platform: Platform::Discord,
             }
         }
